@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Usuários</title>
+</head>
+<body>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    #controls {
+      margin-bottom: 20px;
+    }
+
+    #search {
+      padding: 10px 15px;
+      width: 250px;
+      border: 2px solid #007BFF;
+      border-radius: 25px;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    #search:focus {
+      border-color: #0056b3;
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 0 5px;
+      border: none;
+      border-radius: 25px;
+      background-color: #007BFF;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+      transform: scale(1.05);
+    }
+
+    #container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      width: 200px;
+      text-align: center;
+      transition: transform 0.3s, background-color 0.3s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+    }
+
+    .selected {
+      background-color: #cce5ff;
+    }
+
+    .card img {
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin: 5px 0;
+    }
+
+    .card p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Lista de Usuários</h1>
+  <div id="controls">
+    <input type="text" id="search" placeholder="Buscar por nome ou país">
+    <button onclick="loadUsers(20)">Carregar Mais</button>
+    <button onclick="clearAndLoadUsers(20)">Limpar e Carregar</button>
+  </div>
+  <div id="container"></div>
+
+  <script>
+    // Seleciona os elementos do DOM
+    const container = document.getElementById('container');
+    const searchInput = document.getElementById('search');
+    let allUsers = [];
+    let selectedCards = new Set();
+
+    // Função para renderizar os usuários na tela
+    // Renderiza os usuários no container
+    function renderUsers(users) {
+      container.innerHTML = '';
+      users.forEach((usuario, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.index = index;
+
+        // Adiciona a classe 'selected' se o cartão estiver selecionado
+        if (selectedCards.has(index)) {
+          card.classList.add('selected');
+        }
+
+        card.innerHTML = `
+          <img src="${usuario.picture.medium}" alt="Foto de ${usuario.name.first}">
+          <h2>${usuario.name.first} ${usuario.name.last}</h2>
+          <p><strong>País:</strong> ${usuario.location.country}</p>
+          <p><strong>Login:</strong> ${usuario.login.username}</p>
+        `;
+
+        // Adiciona evento de clique para selecionar o cartão
+        card.addEventListener('click', () => {
+          if (selectedCards.has(index)) {
+            selectedCards.delete(index);
+            card.classList.remove('selected');
+          } else {
+            selectedCards.add(index);
+            card.classList.add('selected');
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    // Função para carregar usuários da API
+    // Carrega usuários da API e evita repetição
+    function loadUsers(count) {
+      fetch(`https://randomuser.me/api/?results=${count}`)
+        .then(res => res.json())
+        .then(data => {
+          // Evita repetição
+          const newUsers = data.results.filter(newUser =>
+            !allUsers.some(existingUser => existingUser.login.uuid === newUser.login.uuid)
+          );
+          allUsers = [...allUsers, ...newUsers];
+          applyFilter();
+        })
+        .catch(error => {
+          console.error('Erro ao carregar usuários:', error);
+        });
+    }
+
+    // Função para limpar os usuários e carregar novos
+    // Limpa os usuários atuais e carrega novos usuários
+    function clearAndLoadUsers(count) {
+      allUsers = [];
+      selectedCards.clear();
+      container.innerHTML = '';
+      loadUsers(count);
+    }
+
+    // Função para aplicar o filtro de busca
+    // Aplica o filtro de busca com base no valor do input
+    function applyFilter() {
+      const searchValue = searchInput.value.toLowerCase();
+      const filteredUsers = allUsers.filter(usuario =>
+        usuario.name.first.toLowerCase().includes(searchValue) ||
+        usuario.name.last.toLowerCase().includes(searchValue) ||
+        usuario.location.country.toLowerCase().includes(searchValue)
+      );
+      renderUsers(filteredUsers);
+    }
+
+    searchInput.addEventListener('input', applyFilter);
+
+    // Carrega os primeiros usuários ao iniciar
+    loadUsers(20);
+  </script>
+
+</body>
+</html>
